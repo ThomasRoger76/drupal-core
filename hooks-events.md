@@ -151,11 +151,19 @@ class MonModuleHooks {
     private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
-  // Drupal découvre et instancie cette classe via le container si elle est un service
-  // Sinon, déclarer dans mon_module.services.yml :
+  // ✅ AUTODISCOVERY D11 — PAS de services.yml requis pour les hooks
+  // Drupal découvre les classes dans src/Hook/ via PSR-4 automatiquement.
+  // Le container est reconstruit à chaque drush cr et détecte les #[Hook].
+  //
+  // ⚠️ EXCEPTION : si la classe a besoin de DI (services injectés),
+  // elle DOIT être déclarée comme service dans mon_module.services.yml :
   //   mon_module.hooks:
   //     class: Drupal\mon_module\Hook\MonModuleHooks
   //     arguments: ['@entity_type.manager']
+  //     tags:
+  //       - { name: drupal.hook_implementations }
+  //
+  // Sans DI : la classe peut vivre dans src/Hook/ sans services.yml
 
   #[Hook('entity_presave')]
   public function entityPresave(EntityInterface $entity): void {
@@ -282,3 +290,210 @@ Pour les hooks, l'ordre s'ajuste via `hook_module_implements_alter()`.
 | `routing.route_alter` | `RoutingEvents::ALTER` | Modifier les routes au runtime |
 | `workflow.guard` | `Symfony\Component\Workflow\Event\GuardEvent` | Bloquer une transition (module `workflows`) |
 | `workflow.completed` | `Symfony\Component\Workflow\Event\CompletedEvent` | Après transition confirmée |
+
+---
+
+## Queue API — Traitement Asynchrone
+
+La Queue API permet de différer un traitement lourd (import CSV, envoi d'emails, appels API externes) pour l'exécuter via cron ou manuellement.
+
+### Ajouter des items à la queue
+
+```php
+// Dans un Controller, Form ou service
+$queue = \Drupal::queue('mon_module_traitement');
+foreach ($lignes_csv as $ligne) {
+  $queue->createItem($ligne);
+}
+// L'item est sérialisé automatiquement
+```
+
+### Définir un QueueWorker (Plugin)
+
+```php
+// src/Plugin/QueueWorker/TraitementImport.php
+namespace Drupal\mon_module\Plugin\QueueWorker;
+
+use Drupal\Core\Queue\QueueWorkerBase;
+
+// D10- : annotation
+// #[QueueWorker(id: "mon_module_traitement", title: "Traitement Import", cron: ["time" => 60])]  // D11+
+/**
+ * @QueueWorker(
+ *   id = "mon_module_traitement",
+ *   title = @Translation("Traitement Import"),
+ *   cron = {"time" = 60}
+ * )
+ */
+class TraitementImport extends QueueWorkerBase {
+
+  public function processItem($data): void {
+    // Traiter $data (l'item sérialisé)
+    // Si une exception est levée → l'item reste dans la queue
+    // Si RequeueException → requeue immédiat
+    // Si SuspendQueueException → arrête le traitement de la queue
+    $this->importerLigne($data);
+  }
+}
+```
+
+### Déclencher la queue manuellement
+
+```bash
+# Via Drush
+drush queue:list                          # Voir les queues disponibles
+drush queue:run mon_module_traitement     # Vider une queue spécifique
+drush cron                                # Exécuter toutes les queues (cron)
+```
+
+---
+
+## Batch API — Traitement par Lots avec Progression
+
+Le Batch API affiche une barre de progression et évite les timeouts PHP.
+
+```php
+// Dans un formulaire ou controller — définir le batch
+function mon_module_lancer_import(array $items): void {
+  $operations = [];
+  foreach (array_chunk($items, 50) as $chunk) {
+    $operations[] = ['\Drupal\mon_module\Batch\ImportBatch::processer', [$chunk]];
+  }
+
+  $batch = [
+    'title' => t('Import en cours...'),
+    'operations' => $operations,
+    'finished' => '\Drupal\mon_module\Batch\ImportBatch::termine',
+    'error_message' => t('Une erreur est survenue.'),
+  ];
+
+  batch_set($batch);
+  // batch_set() déclare le batch — la redirection vers la page de progression
+  // est gérée AUTOMATIQUEMENT par Drupal selon le contexte d'appel
+}
+
+// ─── Dans un FormBase::submitForm() — context formulaire ────────────────────
+public function submitForm(array &$form, FormStateInterface $form_state): void {
+  $items = $this->chargerItems();
+  mon_module_lancer_import($items);
+  // submitForm ne retourne RIEN — Drupal détecte batch_set() et redirige
+  // automatiquement vers la page de progression (/batch)
+  // Pas besoin de return batch_process() dans un formulaire standard
+}
+
+// ─── Dans un Controller — context non-formulaire ─────────────────────────────
+public function importPage(): array|Response {
+  $items = $this->chargerItems();
+  batch_set([
+    'title' => t('Import...'),
+    'operations' => [[[MonBatch::class, 'process'], [$items]]],
+    'finished' => [MonBatch::class, 'finished'],
+  ]);
+  // Dans un Controller, batch_process() retourne une RedirectResponse
+  return batch_process(Url::fromRoute('mon_module.import_result'));
+}
+```
+
+```php
+// src/Batch/ImportBatch.php
+namespace Drupal\mon_module\Batch;
+
+class ImportBatch {
+
+  public static function processer(array $chunk, array &$context): void {
+    if (!isset($context['sandbox']['total'])) {
+      $context['sandbox']['total'] = count($chunk);
+      $context['sandbox']['current'] = 0;
+    }
+
+    foreach ($chunk as $item) {
+      // Traitement de chaque item
+      \Drupal::entityTypeManager()
+        ->getStorage('node')
+        ->create(['type' => 'article', 'title' => $item['titre']])
+        ->save();
+
+      $context['sandbox']['current']++;
+      $context['results'][] = $item['id'];
+    }
+
+    $context['message'] = t('Traitement : @current sur @total', [
+      '@current' => $context['sandbox']['current'],
+      '@total' => $context['sandbox']['total'],
+    ]);
+    $context['finished'] = $context['sandbox']['current'] / $context['sandbox']['total'];
+  }
+
+  public static function termine(bool $success, array $results, array $operations): void {
+    if ($success) {
+      \Drupal::messenger()->addStatus(t('@count éléments importés.', ['@count' => count($results)]));
+    } else {
+      \Drupal::messenger()->addError(t('Erreur pendant le batch.'));
+    }
+  }
+}
+```
+
+---
+
+## Drush Custom Commands
+
+Les modules custom avec traitement de données définissent souvent une commande Drush.
+
+### Structure
+
+```
+mon_module/
+├── drush.services.yml        # Déclarer la commande comme service Drush
+└── src/
+    └── Commands/
+        └── MonModuleCommands.php
+```
+
+```yaml
+# drush.services.yml
+services:
+  mon_module.commands:
+    class: \Drupal\mon_module\Commands\MonModuleCommands
+    arguments: ['@entity_type.manager', '@queue']
+    tags:
+      - { name: drush.command }
+```
+
+```php
+// src/Commands/MonModuleCommands.php
+namespace Drupal\mon_module\Commands;
+
+use Drush\Commands\DrushCommands;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Queue\QueueInterface;
+
+class MonModuleCommands extends DrushCommands {
+
+  public function __construct(
+    private EntityTypeManagerInterface $entityTypeManager,
+    private QueueInterface $queue,
+  ) {}
+
+  /**
+   * Lancer l'import depuis la ligne de commande.
+   *
+   * @command mon-module:import
+   * @aliases mmi
+   * @option limit Nombre maximum d'items à importer
+   * @usage mon-module:import --limit=100
+   */
+  public function import(array $options = ['limit' => 0]): void {
+    $this->output()->writeln('Démarrage de l\'import...');
+    $limit = (int) $options['limit'];
+    // Logique d'import...
+    $this->logger()->success(dt('Import terminé.'));
+  }
+}
+```
+
+```bash
+# Utilisation
+drush mon-module:import
+drush mmi --limit=500
+```

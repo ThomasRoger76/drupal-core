@@ -190,14 +190,14 @@ touch web/modules/custom/mon_module/mon_module.info.yml
 touch web/modules/custom/mon_module/mon_module.module
 
 # 2. Activer le module
-ddev drush en mon_module -y
-ddev drush cr
+docker compose exec php drush en mon_module -y
+docker compose exec php drush cr
 
 # 3. Développer (cycle standard)
-# → coder → ddev drush cr → tester → recommencer
+# → coder → docker compose exec php drush cr → tester → recommencer
 
 # 4. Vérifier les logs
-ddev drush watchdog:tail --severity=error
+docker compose exec php drush watchdog:tail --severity=error
 ```
 
 ### Route pour un formulaire (shortcut `_form`)
@@ -231,9 +231,48 @@ mon_module.settings_form:
 
 ```bash
 # Commandes utiles en dev
-ddev drush cr                                          # Vider tous les caches
-ddev drush php:eval "var_dump(\Drupal::service('mon_module.mon_service'));"
-ddev drush route:list | grep mon_module                # Lister les routes du module
-ddev drush container:debug | grep event_subscriber     # Lister les event subscribers
-ddev drush watchdog:show --type=mon_module             # Logs du module
+docker compose exec php drush cr                                          # Vider tous les caches
+docker compose exec php drush php:eval "var_dump(\Drupal::service('mon_module.mon_service'));"
+docker compose exec php drush route:list | grep mon_module                # Lister les routes du module
+docker compose exec php drush container:debug | grep event_subscriber     # Lister les event subscribers
+docker compose exec php drush watchdog:show --type=mon_module             # Logs du module
+```
+
+---
+
+## `hook_post_update_NAME` — Plus Flexible que `hook_update_N`
+
+| Hook | Fichier | Quand | Ordre d'exécution |
+|------|---------|-------|-------------------|
+| `hook_schema()` | `.install` | Tables DB personnalisées | Avant tout |
+| `hook_update_N()` | `.install` | Migrations schéma numérotées | `drush updb`, avant `cim` |
+| `hook_deploy_N()` | `.deploy.php` | Data/config après import config | `drush deploy`, après `cim` |
+| `hook_post_update_NAME()` | `.post_update.php` | Data complexe, nommage libre | Après tous `hook_update_N` |
+
+```php
+// mon_module.post_update.php
+
+// Avantage : nommage libre → pas de conflits entre branches git
+function mon_module_post_update_migrate_categories(?array &$sandbox): string {
+  if (!isset($sandbox['total'])) {
+    $sandbox['nids'] = \Drupal::entityQuery('node')
+      ->condition('type', 'article')
+      ->accessCheck(FALSE)
+      ->execute();
+    $sandbox['total'] = count($sandbox['nids']);
+    $sandbox['processed'] = 0;
+  }
+  $batch = array_splice($sandbox['nids'], 0, 50);
+  foreach (Node::loadMultiple($batch) as $node) {
+    $node->set('field_tags', $node->get('field_category')->getValue());
+    $node->save();
+    $sandbox['processed']++;
+  }
+  $sandbox['#finished'] = $sandbox['total'] ? $sandbox['processed'] / $sandbox['total'] : 1;
+  return "Migré {$sandbox['processed']}/{$sandbox['total']} nœuds.";
+}
+
+function mon_module_post_update_clean_orphan_data(): void {
+  \Drupal::database()->delete('mon_module_legacy_table')->execute();
+}
 ```

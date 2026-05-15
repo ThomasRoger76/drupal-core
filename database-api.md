@@ -278,7 +278,7 @@ function mon_module_update_10002(array &$sandbox): string {
 }
 ```
 
-Appliquer les updates : `ddev drush updb -y`
+Appliquer les updates : `docker compose exec php drush updb -y`
 
 ---
 

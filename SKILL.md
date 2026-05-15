@@ -18,7 +18,10 @@ Référentiel complet du développement backend Drupal 8-11+ : structure de modu
 | Route vers un formulaire (sans Controller) | `_form:` dans routing.yml | [module-structure.md](module-structure.md) |
 | Créer une permission custom | `.permissions.yml` | [module-structure.md](module-structure.md) |
 | Ajouter un lien de menu admin | `.links.menu.yml` | [module-structure.md](module-structure.md) |
-| Bloc / widget / formatter réutilisable | Plugin (Block, FieldFormatter…) | [plugin-system.md](plugin-system.md) |
+| Bloc / widget réutilisable | Plugin `Block` avec `#[Block]` | [plugin-system.md](plugin-system.md) |
+| Formatter de champ custom (affichage) | Plugin `FieldFormatter` + `#[FieldFormatter]` | [plugin-system.md](plugin-system.md) |
+| Type de champ custom (stockage + widget + formatter) | Plugin `FieldType` + `FieldWidget` + `FieldFormatter` | [plugin-system.md](plugin-system.md) |
+| Données temporaires post-migration (schéma libre) | `hook_post_update_NAME` dans `.post_update.php` | [module-structure.md](module-structure.md) |
 | Modifier un formulaire existant | `hook_form_alter` / `hook_form_FORM_ID_alter` | [hooks-events.md](hooks-events.md) |
 | Réagir à la sauvegarde d'une entité | `hook_entity_presave` | [hooks-events.md](hooks-events.md) |
 | Réagir à une requête/réponse HTTP | `EventSubscriber` (KernelEvents) | [hooks-events.md](hooks-events.md) |
@@ -33,6 +36,20 @@ Référentiel complet du développement backend Drupal 8-11+ : structure de modu
 | Settings admin exportables en YAML | Config API | [services-internal-api.md](services-internal-api.md) |
 | Donnée runtime volatile (timestamp…) | State API | [services-internal-api.md](services-internal-api.md) |
 | Performance — ne pas servir du périmé | Cache tags + contexts + max-age | [services-internal-api.md](services-internal-api.md) |
+| Traitement lourd sans bloquer le navigateur | Queue API (`QueueInterface`, `QueueWorker` plugin) | [hooks-events.md](hooks-events.md) |
+| Traitement par lots avec barre de progression | Batch API (`batch_set()`, `operations`, `finished`) | [hooks-events.md](hooks-events.md) |
+| Commande Drush custom | `Commands` class + `drush.services.yml` | [routing-controllers.md](routing-controllers.md) |
+| Endpoint REST/JSON pour entité Drupal | JSON:API (module core) | [json-api.md](json-api.md) |
+| Filtrer/inclure via JSON:API | `?filter[field]=val&include=ref` | [json-api.md](json-api.md) |
+| CORS pour frontend découplé | `cors.config:` dans services.yml | [json-api.md](json-api.md) |
+| Créer/charger un Media programmatiquement | `Media::create()`, `file_url_generator` | [media-api.md](media-api.md) |
+| Envoyer un email D11 (Symfony Mailer) | `EmailFactory`, `EmailBuilderBase` | [symfony-mailer.md](symfony-mailer.md) |
+| Template Twig pour un email | `@symfony_mailer/base.html.twig` | [symfony-mailer.md](symfony-mailer.md) |
+| Gérer les états éditoriaux (draft/published/archived) | Content Moderation module core | [content-moderation.md](content-moderation.md) |
+| Réagir à une transition de modération | `ContentModerationStateChangedEvent` | [content-moderation.md](content-moderation.md) |
+| Changer l'état d'un nœud programmatiquement | `$node->set('moderation_state', 'published')` | [content-moderation.md](content-moderation.md) |
+| Value Object immuable (DTO sans setter) | `readonly class` PHP 8.3 | [services-internal-api.md](services-internal-api.md) |
+| Constantes typées PHP 8.3 | `const string STATE = 'draft'` | [services-internal-api.md](services-internal-api.md) |
 
 ## Anti-Patterns Critiques
 
@@ -72,5 +89,7 @@ Référentiel complet du développement backend Drupal 8-11+ : structure de modu
 - `drupal-theming` — Twig, preprocess, libraries
 - `drupal-config` — Config Management System, UUID conflicts, overrides
 - `drupal-testing` — PHPUnit, Kernel tests, Functional tests
+- `drush` — Drush CLI (updb, cim, cr, deploy, custom commands)
+- `drupal-migration` — Migrate API (importer des données via plugins)
 - `drupal-security` — CSRF, XSS, permissions, accès API
-- `drupal-tooling` — DDEV, Drush, déploiement
+- `drupal-docker` — Environnement Docker Compose local

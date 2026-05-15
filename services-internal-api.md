@@ -528,3 +528,178 @@ final class ItemDTO {
 | `cache.data` | `CacheBackendInterface` | Cache données structurées |
 | `datetime.time` | `TimeInterface` | Temps courant (préférer à `time()`) |
 | `queue` | `QueueFactory` | Files d'attente asynchrones |
+
+---
+
+## PHP 8.3 Patterns dans Drupal D11
+
+### `readonly class` — Value Object immuable
+
+Idéal pour les DTOs, paramètres de service, résultats de query. Une `readonly class` garantit qu'aucune propriété ne peut être modifiée après construction — plus besoin d'écrire des setters défensifs.
+
+```php
+<?php
+// src/DTO/SearchParams.php
+namespace Drupal\mon_module\DTO;
+
+/**
+ * Paramètres de recherche immuables — passés entre services sans risque de mutation.
+ */
+readonly class SearchParams {
+
+  public function __construct(
+    public readonly string $keywords,
+    public readonly int    $limit  = 10,
+    public readonly int    $offset = 0,
+    public readonly ?string $bundle = NULL,
+    public readonly array  $tags   = [],
+  ) {}
+
+  /**
+   * Retourne une nouvelle instance avec la limite modifiée (immutabilité préservée).
+   */
+  public function withLimit(int $limit): self {
+    return new self(
+      keywords: $this->keywords,
+      limit:    $limit,
+      offset:   $this->offset,
+      bundle:   $this->bundle,
+      tags:     $this->tags,
+    );
+  }
+
+  /**
+   * Retourne une nouvelle instance avec un offset pour la pagination.
+   */
+  public function nextPage(): self {
+    return new self(
+      keywords: $this->keywords,
+      limit:    $this->limit,
+      offset:   $this->offset + $this->limit,
+      bundle:   $this->bundle,
+      tags:     $this->tags,
+    );
+  }
+}
+```
+
+```php
+// Utilisation dans un service
+$params  = new SearchParams(keywords: 'drupal', limit: 20, bundle: 'article');
+$results = $this->searchService->search($params);
+
+// Pagination — nouvelle instance, l'originale est inchangée
+$page2 = $params->nextPage();
+```
+
+### `readonly class` pour les résultats d'import/migration
+
+```php
+<?php
+// src/DTO/ImportResult.php
+namespace Drupal\mon_module\DTO;
+
+/**
+ * Résultat d'un import — retourné par le service, jamais modifié après création.
+ */
+readonly class ImportResult {
+
+  public function __construct(
+    public readonly int    $imported,
+    public readonly int    $updated,
+    public readonly int    $skipped,
+    public readonly array  $errors,
+    public readonly \DateTimeImmutable $executedAt = new \DateTimeImmutable(),
+  ) {}
+
+  public function hasErrors(): bool {
+    return !empty($this->errors);
+  }
+
+  public function total(): int {
+    return $this->imported + $this->updated + $this->skipped;
+  }
+
+  /**
+   * Résumé loggable (évite l'interpolation directe dans les logs Drupal).
+   */
+  public function toLogContext(): array {
+    return [
+      '@imported'   => $this->imported,
+      '@updated'    => $this->updated,
+      '@skipped'    => $this->skipped,
+      '@errors'     => count($this->errors),
+      '@executed'   => $this->executedAt->format('Y-m-d H:i:s'),
+    ];
+  }
+}
+```
+
+```php
+// Utilisation — le service retourne un ImportResult au lieu d'un array non typé
+public function process(): ImportResult {
+  // ... logique d'import ...
+  return new ImportResult(
+    imported: $imported,
+    updated:  $updated,
+    skipped:  $skipped,
+    errors:   $errors,
+  );
+}
+
+// Dans la commande Drush
+$result = $this->importService->process();
+$this->logger->info(
+  'Import : @imported importés, @updated mis à jour, @skipped ignorés, @errors erreurs.',
+  $result->toLogContext()
+);
+```
+
+### Constantes typées PHP 8.3
+
+PHP 8.3 introduit les constantes de classe typées. Appliqué aux états de modération :
+
+```php
+<?php
+// src/ModerationStates.php
+namespace Drupal\mon_module;
+
+/**
+ * Constantes typées pour les états du workflow éditorial.
+ * Évite les chaînes magiques dispersées dans le code.
+ */
+final class ModerationStates {
+  const string DRAFT        = 'draft';
+  const string NEEDS_REVIEW = 'needs_review';
+  const string PUBLISHED    = 'published';
+  const string ARCHIVED     = 'archived';
+}
+```
+
+```php
+// Utilisation — plus de chaînes magiques
+use Drupal\mon_module\ModerationStates;
+
+$node->set('moderation_state', ModerationStates::PUBLISHED);
+$node->save();
+
+// Dans les conditions
+if ($node->moderation_state->value === ModerationStates::DRAFT) {
+  // ...
+}
+
+// Dans les requêtes EntityQuery
+$query->condition('moderation_state', ModerationStates::NEEDS_REVIEW);
+```
+
+**Pourquoi des constantes typées plutôt qu'un enum ?** Les états de workflow sont configurables en YAML et peuvent varier par projet. Les constantes typées sont un compromis : typage fort pour les états connus, sans bloquer les états custom.
+
+### Comparatif — DTO classique vs `readonly class`
+
+| | **DTO classique** (PHP 7.4+) | **`readonly class`** (PHP 8.2+) |
+|--|----------------------------|---------------------------------|
+| Propriétés mutables | ✅ possibles | ❌ interdites à la construction |
+| Boilerplate | `private + getters` | Constructor promotion seul |
+| Clonage modifié | `clone` + setter | Méthode `with*()` retournant `new self()` |
+| Usage Drupal | DTOs existants D9/D10 | **Recommandé D11** (PHP 8.3 minimum) |
+| Thread safety | À garantir manuellement | Garantie structurelle |
