@@ -50,6 +50,17 @@ Référentiel complet du développement backend Drupal 8-11+ : structure de modu
 | Changer l'état d'un nœud programmatiquement | `$node->set('moderation_state', 'published')` | [content-moderation.md](content-moderation.md) |
 | Value Object immuable (DTO sans setter) | `readonly class` PHP 8.3 | [services-internal-api.md](services-internal-api.md) |
 | Constantes typées PHP 8.3 | `const string STATE = 'draft'` | [services-internal-api.md](services-internal-api.md) |
+| Activer Layout Builder sur un type de contenu | `$display->enableLayoutBuilder()->setOverridable()` | [layout-builder.md](layout-builder.md) |
+| Ajouter un bloc à un layout programmatiquement | `Section` + `SectionComponent` | [layout-builder.md](layout-builder.md) |
+| Vérifier si un nœud a un layout personnalisé | `LayoutEntityHelperTrait::getSectionStorageForEntity()` | [layout-builder.md](layout-builder.md) |
+| Désactiver Layout Builder via code | `$display->disableLayoutBuilder()->save()` | [layout-builder.md](layout-builder.md) |
+| Réagir au rendu d'un composant Layout Builder | `EventSubscriber` sur `LayoutBuilderEvents::SECTION_COMPONENT_BUILD_RENDER_ARRAY` | [layout-builder.md](layout-builder.md) |
+| Charger un nœud dans la langue courante | `$node->getTranslation($langcode)` | [multilingual.md](multilingual.md) |
+| EntityQuery filtré par langue | `->condition('langcode', $langcode)` | [multilingual.md](multilingual.md) |
+| Créer une traduction programmatiquement | `$node->addTranslation('fr', [...])` | [multilingual.md](multilingual.md) |
+| Override de config par langue | `LanguageManager::getLanguageConfigOverride()` | [multilingual.md](multilingual.md) |
+| Générer une URL dans une langue spécifique | `Url::fromRoute(..., ['language' => $langue])` | [multilingual.md](multilingual.md) |
+| Traduire une chaîne dans un service PHP | `$this->t()` via `StringTranslationTrait` | [multilingual.md](multilingual.md) |
 
 ## Anti-Patterns Critiques
 
