@@ -102,7 +102,13 @@ Référentiel complet du développement backend Drupal 8-11+ : structure de modu
 - `drupal-theming` — Twig, preprocess, libraries
 - `drupal-config` — Config Management System, UUID conflicts, overrides
 - `drupal-testing` — PHPUnit, Kernel tests, Functional tests
-- `drush` — Drush CLI (updb, cim, cr, deploy, custom commands)
+- `drupal-tooling` — Drush CLI (updb, cim, cr, deploy, custom commands), DDEV
 - `drupal-migration` — Migrate API (importer des données via plugins)
 - `drupal-security` — CSRF, XSS, permissions, accès API
 - `drupal-docker` — Environnement Docker Compose local
+- `drupal-views` — Exposer des données à Views, `hook_views_data()`
+- `drupal-performance` — Cache tags/contexts dans les render arrays, BigPipe
+- `drupal-content-modeling` — Custom Entities, Paragraphs, Layout Builder
+- `drupal-multilingual` — `getTranslation()`, `StringTranslationTrait`
+- `drupal-api` — JSON:API, REST Resources, permissions headless
+- `drupal-search` — `hook_search_api_query_alter()`, custom processors
