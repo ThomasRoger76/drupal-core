@@ -37,6 +37,9 @@ Référentiel complet du développement backend Drupal 8-11+ : structure de modu
 | Settings admin exportables en YAML | Config API | [services-internal-api.md](services-internal-api.md) |
 | Donnée runtime volatile (timestamp…) | State API | [services-internal-api.md](services-internal-api.md) |
 | Performance — ne pas servir du périmé | Cache tags + contexts + max-age | [services-internal-api.md](services-internal-api.md) |
+| Créer son propre type d'événement (custom event) | Classe `Event` + `EventDispatcher::dispatch()` | [custom-events.md](custom-events.md) |
+| Découpler des modules via événements | `EventSubscriber` qui écoute un `CustomEvent::EVENT_NAME` | [custom-events.md](custom-events.md) |
+| Événement stoppable (interrompre la propagation) | `$event->stopPropagation()` | [custom-events.md](custom-events.md) |
 | Traitement lourd sans bloquer le navigateur | Queue API (`QueueInterface`, `QueueWorker` plugin) | [hooks-events.md](hooks-events.md) |
 | Créer une queue nommée programmatiquement | `queue_factory` service + `$queueFactory->get('nom_queue')` | [hooks-events.md](hooks-events.md) |
 | Traitement par lots avec barre de progression | Batch API (`batch_set()`, `operations`, `finished`) | [hooks-events.md](hooks-events.md) |
