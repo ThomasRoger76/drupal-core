@@ -1,6 +1,6 @@
 ---
 name: drupal-core
-description: Use when building custom Drupal modules, structuring .info.yml/.permissions.yml/.services.yml, implementing routes/controllers with dependency injection, choosing between hooks and EventSubscribers, using the Plugin system, Forms API with AJAX and #states, Entity API, Database API, Config vs State API, Cache tags/contexts, or creating custom services in Drupal 8-11+
+description: Use when building custom Drupal modules, structuring .info.yml/.permissions.yml/.services.yml, implementing routes/controllers with dependency injection, choosing between hooks and EventSubscribers, using the Plugin system (Block, FieldType, FieldFormatter, QueueWorker), Forms API with AJAX and #states, Entity API, Database API, Config vs State API, Cache tags/contexts, creating custom services, sending emails with Symfony Mailer, managing editorial workflows with Content Moderation, configuring Layout Builder programmatically, handling multilingual entities and translations, or writing custom Drush commands in Drupal 8-11+
 ---
 
 # Drupal Core — Architecture & Référence Complète
