@@ -32,11 +32,13 @@ Référentiel complet du développement backend Drupal 8-11+ : structure de modu
 | Charger / requêter des entités Drupal | `EntityTypeManager` + `EntityQuery` | [services-internal-api.md](services-internal-api.md) |
 | Requête SQL sur table custom / JOIN / agrégation | Database API | [database-api.md](database-api.md) |
 | Créer une table custom en base | `hook_schema` + `hook_update_N` | [database-api.md](database-api.md) |
+| Modifier le schéma d'un autre module | `hook_schema_alter()` | [database-api.md](database-api.md) |
 | Créer un service réutilisable | `.services.yml` + classe PHP | [services-internal-api.md](services-internal-api.md) |
 | Settings admin exportables en YAML | Config API | [services-internal-api.md](services-internal-api.md) |
 | Donnée runtime volatile (timestamp…) | State API | [services-internal-api.md](services-internal-api.md) |
 | Performance — ne pas servir du périmé | Cache tags + contexts + max-age | [services-internal-api.md](services-internal-api.md) |
 | Traitement lourd sans bloquer le navigateur | Queue API (`QueueInterface`, `QueueWorker` plugin) | [hooks-events.md](hooks-events.md) |
+| Créer une queue nommée programmatiquement | `queue_factory` service + `$queueFactory->get('nom_queue')` | [hooks-events.md](hooks-events.md) |
 | Traitement par lots avec barre de progression | Batch API (`batch_set()`, `operations`, `finished`) | [hooks-events.md](hooks-events.md) |
 | Commande Drush custom | `Commands` class + `drush.services.yml` | [routing-controllers.md](routing-controllers.md) |
 | Endpoint REST/JSON pour entité Drupal | JSON:API (module core) | [json-api.md](json-api.md) |

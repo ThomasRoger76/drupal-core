@@ -4,6 +4,18 @@ Suivi des versions du skill. Incrémenter à chaque correction ou ajout signific
 
 ---
 
+## v3.2 — 2026-05-16
+
+**Description frontmatter étendue :**
+- Ajout : Content Moderation, Layout Builder, Multilingual, Symfony Mailer, Drush commands custom, tous les types de Plugin (Block, FieldType, FieldFormatter, QueueWorker)
+- Garantit le déclenchement du skill sur ces sujets déjà couverts dans les fichiers de référence
+
+**Quick Decision Table :**
+- Nouvelle entrée : `hook_schema_alter()` — modifier le schéma d'un autre module (→ `database-api.md`)
+- Nouvelle entrée : `queue_factory` service pour créer des queues nommées programmatiquement (→ `hooks-events.md`)
+
+---
+
 ## v3.1 — 2026-05-14
 
 **Bugs corrigés :**
