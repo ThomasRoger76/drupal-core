@@ -67,7 +67,7 @@ Référentiel complet du développement backend Drupal 8-11+ : structure de modu
 | Générer une URL dans une langue spécifique | `Url::fromRoute(..., ['language' => $langue])` | [multilingual.md](multilingual.md) |
 | Traduire une chaîne dans un service PHP | `$this->t()` via `StringTranslationTrait` | [multilingual.md](multilingual.md) |
 | **Lazy services D11 (chargés à la demande)** | `lazy: true` dans `.services.yml` → instancié seulement si appelé | [services-internal-api.md](services-internal-api.md) |
-| **AutowireTrait D11 — injection automatique** | `use AutowireTrait` dans un Controller → `#[Autowire]` attribute sur les props | [services-internal-api.md](services-internal-api.md) |
+| **`#[Autowire]` attribute D11 (Symfony 7)** | `#[Autowire(service: 'entity_type.manager')]` dans le constructeur — Controllers et services avec `autoconfigure: true` | [services-internal-api.md](services-internal-api.md) |
 | **Value Objects PHP 8.3 (readonly class)** | `readonly class MonDTO { public function __construct(public string $title) {} }` | [services-internal-api.md](services-internal-api.md) |
 | **`#[Hook]` attribute D11 — hook dans une classe PHP** | `#[Hook('node_presave')]` au-dessus de la méthode dans une classe `*Hooks.php` | [hooks-events.md](hooks-events.md) |
 | **Constructor promotion PHP 8.1+ dans les services** | `public function __construct(private EntityTypeManagerInterface $em)` | [services-internal-api.md](services-internal-api.md) |
