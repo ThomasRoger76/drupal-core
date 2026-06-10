@@ -112,7 +112,7 @@ Référentiel complet du développement backend Drupal 8-11+ : structure de modu
 - `drupal-theming` — Twig, preprocess, libraries
 - `drupal-config` — Config Management System, UUID conflicts, overrides
 - `drupal-testing` — PHPUnit, Kernel tests, Functional tests
-- `drupal-deployment` — drush deploy, drush aliases, DDEV/Docker workflow
+- `drupal-deployment` — drush deploy, drush aliases, workflow Docker natif
 - `drupal-migration` — Migrate API (importer des données via plugins)
 - `drupal-security` — CSRF, XSS, permissions, accès API
 - `drupal-docker` — Environnement Docker Compose local
